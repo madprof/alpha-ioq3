@@ -159,10 +159,11 @@ qboolean Sys_WritePIDFile( void )
 	// First, check if the pid file is already there
 	if( ( f = fopen( pidFile, "r" ) ) != NULL )
 	{
-		char  pidBuffer[ 64 ] = { 0 };
-		int   pid;
+		char    pidBuffer[ 64 ] = { 0 };
+		int     pid;
+		size_t  ignored;
 
-		fread( pidBuffer, sizeof( char ), sizeof( pidBuffer ) - 1, f );
+		ignored = fread( pidBuffer, sizeof( char ), sizeof( pidBuffer ) - 1, f );
 		fclose( f );
 
 		pid = atoi( pidBuffer );
