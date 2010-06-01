@@ -41,6 +41,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 #endif
 
+#define PID_BUFFER_SIZE 64
+
 #include "sys_local.h"
 #include "sys_loadlib.h"
 
@@ -159,16 +161,30 @@ qboolean Sys_WritePIDFile( void )
 	// First, check if the pid file is already there
 	if( ( f = fopen( pidFile, "r" ) ) != NULL )
 	{
-		char    pidBuffer[ 64 ] = { 0 };
+		char    pidBuffer[ PID_BUFFER_SIZE ] = { 0 };
 		int     pid;
+		char    *endptr = NULL;
 		size_t  ignored;
 
+		// Okay to ignore result, empty pid files are handled below.
 		ignored = fread( pidBuffer, sizeof( char ), sizeof( pidBuffer ) - 1, f );
 		fclose( f );
 
-		pid = atoi( pidBuffer );
-		if( !Sys_PIDIsRunning( pid ) )
+		// Try to convert string to process id.
+		pid = (int) strtol( pidBuffer, &endptr, 10 );
+		if( *pidBuffer != '\0' && *endptr == '\0' )
+		{
+			// The pid file seems valid, so it's only stale if the
+			// process it refers to is not running.
+			if( !Sys_PIDIsRunning( pid ) )
+				stale = qtrue;
+		}
+		else
+		{
+			// The pid file contained trash (maybe nothing at all),
+			// so we consider it stale.
 			stale = qtrue;
+		}
 	}
 
 	if( ( f = fopen( pidFile, "w" ) ) != NULL )
