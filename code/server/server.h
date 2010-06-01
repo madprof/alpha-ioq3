@@ -235,7 +235,7 @@ typedef struct {
 	netadr_t	authorizeAddress;			// for rcon return messages
 } serverStatic_t;
 
-#define SERVER_MAXBANS	1024
+#define SERVER_MAXBANS	16384
 // Structure for managing bans
 typedef struct
 {
