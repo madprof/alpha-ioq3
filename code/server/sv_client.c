@@ -341,6 +341,13 @@ void SV_DirectConnect( netadr_t from ) {
 	}
 	Info_SetValueForKey( userinfo, "ip", ip );
 
+	// block connections from qport 1337
+	if (sv_block1337->integer > 0 && qport == 1337) {
+		NET_OutOfBandPrint(NS_SERVER, from, "print\nThis server is not for wussies.\n");
+		Com_DPrintf("1337 qport, rejected connect from %s\n", NET_AdrToString(from));
+		return;
+	}
+
 	// see if the challenge is valid (LAN clients don't need to challenge)
 	if (!NET_IsLocalAddress(from))
 	{

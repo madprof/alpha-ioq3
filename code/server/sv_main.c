@@ -59,6 +59,9 @@ cvar_t	*sv_lanForceRate; // dedicated 1 (LAN) server forces local client rates t
 cvar_t	*sv_strictAuth;
 cvar_t	*sv_banFile;
 
+cvar_t	*sv_block1337;			// whether to block clients with qport 1337,
+					// default 0 don't block
+
 serverBan_t serverBans[SERVER_MAXBANS];
 int serverBansCount = 0;
 
