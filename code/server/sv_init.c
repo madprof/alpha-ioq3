@@ -699,6 +699,9 @@ void SV_Init (void) {
 	
 	// Load saved bans
 	Cbuf_AddText("rehashbans\n");
+
+	// Load saved whitelist
+	Cbuf_AddText("rehashrconwhitelist\n");
 }
 
 

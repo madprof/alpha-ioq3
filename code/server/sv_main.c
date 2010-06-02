@@ -73,6 +73,9 @@ cvar_t	*sv_rconWhitelist;	// file containing IP addresses allowed to execute RCO
 serverBan_t serverBans[SERVER_MAXBANS];
 int serverBansCount = 0;
 
+serverBan_t rconWhitelist[MAX_RCON_WHITELIST];
+int rconWhitelistCount = 0;
+
 /*
 =============================================================================
 

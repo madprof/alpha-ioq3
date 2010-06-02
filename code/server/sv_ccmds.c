@@ -607,6 +607,91 @@ static void SV_RehashBans_f(void)
 
 /*
 ==================
+SV_RehashRconWhitelist_f
+
+Load RCON whitelist from file.
+==================
+*/
+static void SV_RehashRconWhitelist_f(void)
+{
+	int index, filelen;
+	fileHandle_t readfrom;
+	char *textbuf, *curpos, *maskpos, *newlinepos, *endpos;
+	char filepath[MAX_QPATH];
+
+	rconWhitelistCount = 0;
+
+	if(!sv_rconWhitelist->string || !*sv_rconWhitelist->string)
+		return;
+
+	if(!(curpos = Cvar_VariableString("fs_game")) || !*curpos)
+		curpos = BASEGAME;
+
+	Com_sprintf(filepath, sizeof(filepath), "%s/%s", curpos, sv_rconWhitelist->string);
+
+	if((filelen = FS_SV_FOpenFileRead(filepath, &readfrom)) >= 0)
+	{
+		if(filelen < 2)
+		{
+			// Don't bother if file is too short.
+			FS_FCloseFile(readfrom);
+			return;
+		}
+
+		curpos = textbuf = Z_Malloc(filelen);
+
+		filelen = FS_Read(textbuf, filelen, readfrom);
+		FS_FCloseFile(readfrom);
+
+		endpos = textbuf + filelen;
+
+		for(index = 0; index < MAX_RCON_WHITELIST && curpos + 2 < endpos; index++)
+		{
+			// find the end of the address string
+			for(maskpos = curpos + 2; maskpos < endpos && *maskpos != ' '; maskpos++);
+
+			if(maskpos + 1 >= endpos)
+				break;
+
+			*maskpos = '\0';
+			maskpos++;
+
+			// find the end of the subnet specifier
+			for(newlinepos = maskpos; newlinepos < endpos && *newlinepos != '\n'; newlinepos++);
+
+			if(newlinepos >= endpos)
+				break;
+
+			*newlinepos = '\0';
+
+			if(NET_StringToAdr(curpos + 2, &rconWhitelist[index].ip, NA_UNSPEC))
+			{
+				rconWhitelist[index].isexception = (curpos[0] != '0');
+				rconWhitelist[index].subnet = atoi(maskpos);
+
+				if(rconWhitelist[index].ip.type == NA_IP &&
+				   (rconWhitelist[index].subnet < 1 || rconWhitelist[index].subnet > 32))
+				{
+					rconWhitelist[index].subnet = 32;
+				}
+				else if(rconWhitelist[index].ip.type == NA_IP6 &&
+					(rconWhitelist[index].subnet < 1 || rconWhitelist[index].subnet > 128))
+				{
+					rconWhitelist[index].subnet = 128;
+				}
+			}
+
+			curpos = newlinepos + 1;
+		}
+
+		rconWhitelistCount = index;
+
+		Z_Free(textbuf);
+	}
+}
+
+/*
+==================
 SV_WriteBans_f
 
 Save bans to file.
@@ -1293,6 +1378,8 @@ void SV_AddOperatorCommands( void ) {
 	Cmd_AddCommand("bandel", SV_BanDel_f);
 	Cmd_AddCommand("exceptdel", SV_ExceptDel_f);
 	Cmd_AddCommand("flushbans", SV_FlushBans_f);
+
+	Cmd_AddCommand("rehashrconwhitelist", SV_RehashRconWhitelist_f);
 }
 
 /*

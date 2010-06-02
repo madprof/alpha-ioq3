@@ -294,6 +294,10 @@ extern	cvar_t	*sv_rconWhitelist;
 extern	serverBan_t serverBans[SERVER_MAXBANS];
 extern	int serverBansCount;
 
+# define MAX_RCON_WHITELIST 32
+extern	serverBan_t rconWhitelist[MAX_RCON_WHITELIST];
+extern	int rconWhitelistCount;
+
 #ifdef USE_VOIP
 extern	cvar_t	*sv_voip;
 #endif
