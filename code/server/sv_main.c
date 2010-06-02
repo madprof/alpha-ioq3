@@ -62,6 +62,9 @@ cvar_t	*sv_banFile;
 cvar_t	*sv_block1337;			// whether to block clients with qport 1337,
 					// default 0 don't block
 
+cvar_t	*sv_requireValidGuid;	// whether client userinfo must contain a cl_guid, string of length 32 consisting
+				// of characters '0' through '9' and 'A' through 'F', default 0 don't require
+
 serverBan_t serverBans[SERVER_MAXBANS];
 int serverBansCount = 0;
 

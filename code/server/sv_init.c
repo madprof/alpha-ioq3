@@ -684,6 +684,8 @@ void SV_Init (void) {
 
 	sv_block1337 = Cvar_Get ("sv_block1337", "0", CVAR_ARCHIVE );
 
+	sv_requireValidGuid = Cvar_Get ("sv_requireValidGuid", "0", CVAR_ARCHIVE );
+
 	// initialize bot cvars so they are listed and can be set before loading the botlib
 	SV_BotInitCvars();
 

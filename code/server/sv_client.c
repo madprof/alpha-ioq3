@@ -268,6 +268,36 @@ static qboolean SV_IsBanned(netadr_t *from, qboolean isexception)
 
 /*
 ==================
+SV_ApproveGuid
+
+Returns a false value if and only if the client with this cl_guid
+should not be allowed to enter the server.
+
+A cl_guid string must have length 32 and consist of characters
+'0' through '9' and 'A' through 'F'.
+==================
+*/
+qboolean SV_ApproveGuid( const char *guid) {
+	int	i;
+	char	c;
+	int	length;
+
+	if (sv_requireValidGuid->integer > 0) {
+		length = strlen(guid); // could avoid this extra linear-time computation
+		if (length != 32) { return qfalse; }
+		for (i = 31; i >= 0;) {
+			c = guid[i--];
+			if (!(('0' <= c && c <= '9') ||
+				('A' <= c && c <= 'F'))) {
+				return qfalse;
+			}
+		}
+	}
+	return qtrue;
+}
+
+/*
+==================
 SV_DirectConnect
 
 A "connect" OOB command has been received
@@ -340,6 +370,13 @@ void SV_DirectConnect( netadr_t from ) {
 		return;
 	}
 	Info_SetValueForKey( userinfo, "ip", ip );
+
+	// block connections for invalid GUIDs
+	if (!SV_ApproveGuid(Info_ValueForKey(userinfo, "cl_guid"))) {
+		NET_OutOfBandPrint(NS_SERVER, from, "print\nGet legit, bro.\n");
+		Com_DPrintf("Invalid cl_guid, rejected connect from %s\n", NET_AdrToString (from));
+		return;
+	}
 
 	// block connections from qport 1337
 	if (sv_block1337->integer > 0 && qport == 1337) {

@@ -738,3 +738,59 @@ int NET_StringToAdr( const char *s, netadr_t *a, netadrtype_t family )
 		return 2;
 	}
 }
+
+/*
+====================
+NET_IsIP
+
+Determines whether a string is a valid ip address.
+This function is strict to the extreme degree;
+octets must be in base 10 and non-zero octets may
+not have leading 0's.
+
+Use this function to check that it's a raw IP address
+before passing it to NET_StringToAdr to ensure that no
+DNS lookups will take place.  This is a very efficient
+operation and will take very few CPU cycles.
+====================
+*/
+qboolean	NET_IsIP( const char *s ) {
+	int	i;
+	int	length = -1;
+	int	octetInx = 3;
+	int	digitCount = 0;
+	int	sum = 0;
+	char	character = '\0';
+	qboolean	lastZero = qfalse;
+	static int	powBase10[] = { 1, 10, 100 };
+
+	while (qtrue) {
+		if (length == 15) { return qfalse; }
+		if (s[++length] == '\0') { break; }
+	}
+
+	for (i = length; i >= 0;) {
+		if (--i < 0 || (character = s[i]) == '.') {
+			if (sum == 0) {
+				if (digitCount != 1) { return qfalse; }
+			}
+			else { // sum is not zero
+				if (lastZero) { return qfalse; }
+				if (sum > 0x000000ff) { return qfalse; }
+			}
+			octetInx--;
+			if (i >= 0 && octetInx < 0) { return qfalse; }
+			digitCount = 0;
+			sum = 0;
+		}
+		else if ('0' <= character && character <= '9') {
+			if (digitCount == 3) { return qfalse; }
+			if ('0' == character) { lastZero = qtrue; }
+			else { lastZero = qfalse; }
+			sum += (powBase10[digitCount++] * (character - '0'));
+		}
+		else { return qfalse; }
+	}
+	if (octetInx >= 0) { return qfalse; }
+	return qtrue;
+}

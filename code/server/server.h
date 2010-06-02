@@ -285,6 +285,8 @@ extern	cvar_t	*sv_banFile;
 
 extern	cvar_t	*sv_block1337;
 
+extern	cvar_t	*sv_requireValidGuid;
+
 extern	serverBan_t serverBans[SERVER_MAXBANS];
 extern	int serverBansCount;
 
