@@ -220,11 +220,18 @@ ifeq ($(wildcard .svn),.svn)
     USE_SVN=1
   endif
 else
+ifeq ($(wildcard .git),.git)
+  SVN_REV=$(shell LANG=C git describe)
+  ifneq ($(SVN_REV),)
+    VERSION:=$(VERSION)_$(SVN_REV)
+  endif
+else
 ifeq ($(wildcard .git/svn/.metadata),.git/svn/.metadata)
   SVN_REV=$(shell LANG=C git svn info | awk '$$1 == "Revision:" {print $$2; exit 0}')
   ifneq ($(SVN_REV),)
     VERSION:=$(VERSION)_SVN$(SVN_REV)
   endif
+endif
 endif
 endif
 
