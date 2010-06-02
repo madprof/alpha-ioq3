@@ -688,6 +688,50 @@ static void SV_FlushRedirect( char *outputbuf ) {
 }
 
 /*
+==================
+SV_IsRconWhitelisted
+
+Check whether a certain address is RCON whitelisted
+==================
+*/
+
+static qboolean SV_IsRconWhitelisted(netadr_t *from)
+{
+	int index;
+	serverBan_t *curban;
+
+	for(index = 0; index < rconWhitelistCount; index++)
+	{
+		curban = &rconWhitelist[index];
+
+		if(NET_CompareBaseAdrMask(curban->ip, *from, curban->subnet))
+			return qtrue;
+	}
+
+	return qfalse;
+}
+
+static void SV_DropClientsByAddress(netadr_t *drop, const char *reason)
+{
+	int		i;
+	client_t	*cl;
+
+	// for all clients
+	for (i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++) {
+		// skip free slots
+		if (cl->state == CS_FREE) {
+			continue;
+		}
+		// skip other addresses
+		if (!NET_CompareBaseAdr(*drop, cl->netchan.remoteAddress)) {
+			continue;
+		}
+		// address matches, drop this one
+		SV_DropClient(cl, reason);
+	}
+}
+
+/*
 ===============
 SVC_RemoteCommand
 
@@ -704,6 +748,16 @@ static void SVC_RemoteCommand( netadr_t from, msg_t *msg ) {
 #define SV_OUTPUTBUF_LENGTH (1024 - 16)
 	char		sv_outputbuf[SV_OUTPUTBUF_LENGTH];
 	char *cmd_aux;
+
+	// Prevent use of rcon from addresses that have not been whitelisted
+	if(!SV_IsRconWhitelisted(&from))
+	{
+		Com_DPrintf( "SVC_RemoteCommand: attempt from %s who is not whitelisted\n",
+			NET_AdrToString( from ) );
+		NET_OutOfBandPrint(NS_SERVER, from, "print\nSorry, no cookie for you.\n");
+		SV_DropClientsByAddress(&from, "canz notz haz adminz");
+		return;
+	}
 
 	// Prevent using rcon as an amplifier and make dictionary attacks impractical
 	if ( SVC_RateLimitAddress( from, 10, 1000 ) ) {
