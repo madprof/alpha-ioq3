@@ -520,6 +520,8 @@ static void SV_BanNum_f( void ) {
 }
 #endif
 
+static int SV_RehashServerBanFile(cvar_t *fileName, int maxEntries, serverBan_t buffer[]);
+
 /*
 ==================
 SV_RehashBans_f
@@ -529,80 +531,7 @@ Load saved bans from file.
 */
 static void SV_RehashBans_f(void)
 {
-	int index, filelen;
-	fileHandle_t readfrom;
-	char *textbuf, *curpos, *maskpos, *newlinepos, *endpos;
-	char filepath[MAX_QPATH];
-	
-	serverBansCount = 0;
-	
-	if(!sv_banFile->string || !*sv_banFile->string)
-		return;
-
-	if(!(curpos = Cvar_VariableString("fs_game")) || !*curpos)
-		curpos = BASEGAME;
-	
-	Com_sprintf(filepath, sizeof(filepath), "%s/%s", curpos, sv_banFile->string);
-
-	if((filelen = FS_SV_FOpenFileRead(filepath, &readfrom)) >= 0)
-	{
-		if(filelen < 2)
-		{
-			// Don't bother if file is too short.
-			FS_FCloseFile(readfrom);
-			return;
-		}
-
-		curpos = textbuf = Z_Malloc(filelen);
-		
-		filelen = FS_Read(textbuf, filelen, readfrom);
-		FS_FCloseFile(readfrom);
-		
-		endpos = textbuf + filelen;
-		
-		for(index = 0; index < SERVER_MAXBANS && curpos + 2 < endpos; index++)
-		{
-			// find the end of the address string
-			for(maskpos = curpos + 2; maskpos < endpos && *maskpos != ' '; maskpos++);
-			
-			if(maskpos + 1 >= endpos)
-				break;
-
-			*maskpos = '\0';
-			maskpos++;
-			
-			// find the end of the subnet specifier
-			for(newlinepos = maskpos; newlinepos < endpos && *newlinepos != '\n'; newlinepos++);
-			
-			if(newlinepos >= endpos)
-				break;
-			
-			*newlinepos = '\0';
-			
-			if(NET_StringToAdr(curpos + 2, &serverBans[index].ip, NA_UNSPEC))
-			{
-				serverBans[index].isexception = (curpos[0] != '0');
-				serverBans[index].subnet = atoi(maskpos);
-				
-				if(serverBans[index].ip.type == NA_IP &&
-				   (serverBans[index].subnet < 1 || serverBans[index].subnet > 32))
-				{
-					serverBans[index].subnet = 32;
-				}
-				else if(serverBans[index].ip.type == NA_IP6 &&
-					(serverBans[index].subnet < 1 || serverBans[index].subnet > 128))
-				{
-					serverBans[index].subnet = 128;
-				}
-			}
-			
-			curpos = newlinepos + 1;
-		}
-			
-		serverBansCount = index;
-		
-		Z_Free(textbuf);
-	}
+	serverBansCount = SV_RehashServerBanFile(sv_banFile, SERVER_MAXBANS, serverBans);
 }
 
 /*
@@ -614,80 +543,97 @@ Load RCON whitelist from file.
 */
 static void SV_RehashRconWhitelist_f(void)
 {
+	rconWhitelistCount = SV_RehashServerBanFile(sv_rconWhitelist, MAX_RCON_WHITELIST, rconWhitelist);
+}
+
+/*
+==================
+SV_RehashServerBanFile
+
+Helper to reload a "serverBan_t" type of file
+Returns number of entries loaded
+==================
+*/
+static int SV_RehashServerBanFile(cvar_t *fileName, int maxEntries, serverBan_t buffer[])
+{
 	int index, filelen;
 	fileHandle_t readfrom;
 	char *textbuf, *curpos, *maskpos, *newlinepos, *endpos;
 	char filepath[MAX_QPATH];
+	int numEntries = 0;
 
-	rconWhitelistCount = 0;
-
-	if(!sv_rconWhitelist->string || !*sv_rconWhitelist->string)
-		return;
+	if(!fileName->string || !*fileName->string)
+		goto exit;
 
 	if(!(curpos = Cvar_VariableString("fs_game")) || !*curpos)
 		curpos = BASEGAME;
 
-	Com_sprintf(filepath, sizeof(filepath), "%s/%s", curpos, sv_rconWhitelist->string);
+	Com_sprintf(filepath, sizeof(filepath), "%s/%s", curpos, fileName->string);
 
-	if((filelen = FS_SV_FOpenFileRead(filepath, &readfrom)) >= 0)
+	if((filelen = FS_SV_FOpenFileRead(filepath, &readfrom)) < 0)
 	{
-		if(filelen < 2)
-		{
-			// Don't bother if file is too short.
-			FS_FCloseFile(readfrom);
-			return;
-		}
-
-		curpos = textbuf = Z_Malloc(filelen);
-
-		filelen = FS_Read(textbuf, filelen, readfrom);
-		FS_FCloseFile(readfrom);
-
-		endpos = textbuf + filelen;
-
-		for(index = 0; index < MAX_RCON_WHITELIST && curpos + 2 < endpos; index++)
-		{
-			// find the end of the address string
-			for(maskpos = curpos + 2; maskpos < endpos && *maskpos != ' '; maskpos++);
-
-			if(maskpos + 1 >= endpos)
-				break;
-
-			*maskpos = '\0';
-			maskpos++;
-
-			// find the end of the subnet specifier
-			for(newlinepos = maskpos; newlinepos < endpos && *newlinepos != '\n'; newlinepos++);
-
-			if(newlinepos >= endpos)
-				break;
-
-			*newlinepos = '\0';
-
-			if(NET_StringToAdr(curpos + 2, &rconWhitelist[index].ip, NA_UNSPEC))
-			{
-				rconWhitelist[index].isexception = (curpos[0] != '0');
-				rconWhitelist[index].subnet = atoi(maskpos);
-
-				if(rconWhitelist[index].ip.type == NA_IP &&
-				   (rconWhitelist[index].subnet < 1 || rconWhitelist[index].subnet > 32))
-				{
-					rconWhitelist[index].subnet = 32;
-				}
-				else if(rconWhitelist[index].ip.type == NA_IP6 &&
-					(rconWhitelist[index].subnet < 1 || rconWhitelist[index].subnet > 128))
-				{
-					rconWhitelist[index].subnet = 128;
-				}
-			}
-
-			curpos = newlinepos + 1;
-		}
-
-		rconWhitelistCount = index;
-
-		Z_Free(textbuf);
+		Com_Printf("SV_RehashServerBanFile: failed to open %s\n", filepath);
+		goto exit;
 	}
+
+	if(filelen < 2)
+	{
+		// Don't bother if file is too short.
+		FS_FCloseFile(readfrom);
+		goto exit;
+	}
+
+	curpos = textbuf = Z_Malloc(filelen);
+
+	filelen = FS_Read(textbuf, filelen, readfrom);
+	FS_FCloseFile(readfrom);
+
+	endpos = textbuf + filelen;
+
+	for(index = 0; index < maxEntries && curpos + 2 < endpos; index++)
+	{
+		// find the end of the address string
+		for(maskpos = curpos + 2; maskpos < endpos && *maskpos != ' '; maskpos++);
+
+		if(maskpos + 1 >= endpos)
+			break;
+
+		*maskpos = '\0';
+		maskpos++;
+
+		// find the end of the subnet specifier
+		for(newlinepos = maskpos; newlinepos < endpos && *newlinepos != '\n'; newlinepos++);
+
+		if(newlinepos >= endpos)
+			break;
+
+		*newlinepos = '\0';
+
+		if(NET_StringToAdr(curpos + 2, &buffer[index].ip, NA_UNSPEC))
+		{
+			buffer[index].isexception = (curpos[0] != '0');
+			buffer[index].subnet = atoi(maskpos);
+
+			if(buffer[index].ip.type == NA_IP &&
+			   (buffer[index].subnet < 1 || buffer[index].subnet > 32))
+			{
+				buffer[index].subnet = 32;
+			}
+			else if(buffer[index].ip.type == NA_IP6 &&
+				(buffer[index].subnet < 1 || buffer[index].subnet > 128))
+			{
+				buffer[index].subnet = 128;
+			}
+		}
+
+		curpos = newlinepos + 1;
+	}
+
+	Z_Free(textbuf);
+	numEntries = index;
+
+exit:
+	return numEntries;
 }
 
 /*
