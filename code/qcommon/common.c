@@ -2628,10 +2628,11 @@ Com_Init
 =================
 */
 void Com_Init( char *commandLine ) {
-	char	*s;
+	char	*version_string;
 	int	qport;
 
-	Com_Printf( "%s %s %s\n", Q3_VERSION, PLATFORM_STRING, __DATE__ );
+	version_string = va("%s %s %s %s", Q3_VERSION, PRODUCT_FORK, PLATFORM_STRING, __DATE__ );
+	Com_Printf( "%s\n", version_string );
 
 	if ( setjmp (abortframe) ) {
 		Sys_Error ("Error during initialization");
@@ -2743,8 +2744,7 @@ void Com_Init( char *commandLine ) {
 
 	com_introPlayed = Cvar_Get( "com_introplayed", "0", CVAR_ARCHIVE);
 
-	s = va("%s %s %s", Q3_VERSION, PLATFORM_STRING, __DATE__ );
-	com_version = Cvar_Get ("version", s, CVAR_ROM | CVAR_SERVERINFO );
+	com_version = Cvar_Get ("version", version_string, CVAR_ROM | CVAR_SERVERINFO );
 
 	Sys_Init();
 
