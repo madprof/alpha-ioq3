@@ -289,6 +289,8 @@ extern	cvar_t	*sv_requireValidGuid;
 
 extern	cvar_t	*sv_userinfoDelayMillis;
 
+extern	cvar_t	*sv_rconWhitelist;
+
 extern	serverBan_t serverBans[SERVER_MAXBANS];
 extern	int serverBansCount;
 

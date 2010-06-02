@@ -689,6 +689,8 @@ void SV_Init (void) {
 	sv_userinfoDelayMillis = Cvar_Get ("sv_userinfoDelayMillis", "3000", CVAR_ARCHIVE );
 	Cvar_CheckRange( sv_userinfoDelayMillis, 1000, 10000, qtrue );
 
+	sv_rconWhitelist = Cvar_Get ("sv_rconWhitelist", "", CVAR_ARCHIVE );
+
 	// initialize bot cvars so they are listed and can be set before loading the botlib
 	SV_BotInitCvars();
 
