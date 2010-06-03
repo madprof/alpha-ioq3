@@ -750,14 +750,17 @@ static void SVC_RemoteCommand( netadr_t from, msg_t *msg ) {
 	char		sv_outputbuf[SV_OUTPUTBUF_LENGTH];
 	char *cmd_aux;
 
-	// Prevent use of rcon from addresses that have not been whitelisted
-	if(!SV_IsRconWhitelisted(&from))
-	{
-		Com_DPrintf( "SVC_RemoteCommand: attempt from %s who is not whitelisted\n",
-			NET_AdrToString( from ) );
-		NET_OutOfBandPrint(NS_SERVER, from, "print\nSorry, no cookie for you.\n");
-		SV_DropClientsByAddress(&from, "canz notz haz adminz");
-		return;
+	// Do we have a whitelist for rcon?
+	if(sv_rconWhitelist->string && *sv_rconWhitelist->string) {
+		// Prevent use of rcon from addresses that have not been whitelisted
+		if(!SV_IsRconWhitelisted(&from))
+		{
+			Com_DPrintf( "SVC_RemoteCommand: attempt from %s who is not whitelisted\n",
+				NET_AdrToString( from ) );
+			NET_OutOfBandPrint(NS_SERVER, from, "print\nSorry, no cookie for you.\n");
+			SV_DropClientsByAddress(&from, "canz notz haz adminz");
+			return;
+		}
 	}
 
 	// Prevent using rcon as an amplifier and make dictionary attacks impractical
