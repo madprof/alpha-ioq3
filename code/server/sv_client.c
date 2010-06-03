@@ -1437,9 +1437,10 @@ SV_UpdateUserinfo_f
 */
 static void SV_UpdateUserinfo_f( client_t *cl ) {
 	// rate limit how often players can change their userinfo
-	if ( cl->state == CS_ACTIVE && SVC_RateLimitAddress( cl->netchan.remoteAddress, 1, sv_userinfoDelayMillis->integer ) ) {
+	netadr_t from = cl->netchan.remoteAddress;
+	if ( cl->state == CS_ACTIVE && from.type != NA_BOT && SVC_RateLimitAddress( from, 1, sv_userinfoDelayMillis->integer ) ) {
 		Com_DPrintf( "SV_UpdateUserinfo_f: rate limit from %s exceeded, dropping request\n",
-			NET_AdrToString( cl->netchan.remoteAddress ) );
+			NET_AdrToString( from ) );
 		SV_SendServerCommand(cl, "print \"^7You cannot change your userinfo that quickly.\"");
 		return;
 	}
