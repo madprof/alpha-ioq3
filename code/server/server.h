@@ -287,6 +287,8 @@ extern	cvar_t	*sv_block1337;
 
 extern	cvar_t	*sv_requireValidGuid;
 
+extern	cvar_t	*sv_userinfoDelayMillis;
+
 extern	serverBan_t serverBans[SERVER_MAXBANS];
 extern	int serverBansCount;
 
@@ -310,6 +312,7 @@ void SV_RemoveOperatorCommands (void);
 void SV_MasterHeartbeat (void);
 void SV_MasterShutdown (void);
 
+qboolean SVC_RateLimitAddress( netadr_t from, int burst, int period );
 
 
 

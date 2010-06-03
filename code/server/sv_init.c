@@ -686,6 +686,9 @@ void SV_Init (void) {
 
 	sv_requireValidGuid = Cvar_Get ("sv_requireValidGuid", "0", CVAR_ARCHIVE );
 
+	sv_userinfoDelayMillis = Cvar_Get ("sv_userinfoDelayMillis", "3000", CVAR_ARCHIVE );
+	Cvar_CheckRange( sv_userinfoDelayMillis, 1000, 10000, qtrue );
+
 	// initialize bot cvars so they are listed and can be set before loading the botlib
 	SV_BotInitCvars();
 

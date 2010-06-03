@@ -65,6 +65,8 @@ cvar_t	*sv_block1337;			// whether to block clients with qport 1337,
 cvar_t	*sv_requireValidGuid;	// whether client userinfo must contain a cl_guid, string of length 32 consisting
 				// of characters '0' through '9' and 'A' through 'F', default 0 don't require
 
+cvar_t	*sv_userinfoDelayMillis;	// milliseconds that must pass between userinfo changes, default 3000
+
 serverBan_t serverBans[SERVER_MAXBANS];
 int serverBansCount = 0;
 
@@ -527,7 +529,7 @@ SVC_RateLimitAddress
 Rate limit for a particular address
 ================
 */
-static qboolean SVC_RateLimitAddress( netadr_t from, int burst, int period ) {
+qboolean SVC_RateLimitAddress( netadr_t from, int burst, int period ) {
 	leakyBucket_t *bucket = SVC_BucketForAddress( from, burst, period );
 
 	return SVC_RateLimit( bucket, burst, period );
