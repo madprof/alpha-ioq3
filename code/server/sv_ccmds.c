@@ -1150,6 +1150,45 @@ static void SV_Status_f( void ) {
 
 /*
 ==================
+SV_ConTell_f
+==================
+*/
+static void SV_ConTell_f(void) {
+	char	*p;
+	char	text[1024];
+	client_t        *cl;
+
+	// make sure server is running
+	if ( !com_sv_running->integer ) {
+		Com_Printf( "Server is not running.\n" );
+		return;
+	}
+
+	if ( Cmd_Argc() < 3 ) {
+		Com_Printf ("Usage: tell <client number> <text>\n");
+		return;
+	}
+	
+	cl = SV_GetPlayerByNum();
+	if ( !cl ) {
+		return;
+	}
+
+	strcpy (text, " ");
+	p = Cmd_ArgsFrom(2);
+
+	if ( *p == '"' ) {
+		p++;
+		p[strlen(p)-1] = 0;
+	}
+
+	strcat(text, p);
+
+	SV_SendServerCommand(cl, "chat \"%s\n\"", text);
+}
+
+/*
+==================
 SV_ConSay_f
 ==================
 */
@@ -1386,6 +1425,7 @@ void SV_AddOperatorCommands( void ) {
 	Cmd_AddCommand ("killserver", SV_KillServer_f);
 	if( com_dedicated->integer ) {
 		Cmd_AddCommand ("say", SV_ConSay_f);
+		Cmd_AddCommand ("tell", SV_ConTell_f);
 	}
 	
 	Cmd_AddCommand("rehashbans", SV_RehashBans_f);
@@ -1420,6 +1460,7 @@ void SV_RemoveOperatorCommands( void ) {
 	Cmd_RemoveCommand ("map_restart");
 	Cmd_RemoveCommand ("sectorlist");
 	Cmd_RemoveCommand ("say");
+	Cmd_RemoveCommand ("tell");
 #endif
 }
 
