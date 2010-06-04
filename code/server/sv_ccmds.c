@@ -1395,15 +1395,9 @@ void SV_AddOperatorCommands( void ) {
 	Cmd_AddCommand("bandel", SV_BanDel_f);
 	Cmd_AddCommand("exceptdel", SV_ExceptDel_f);
 	Cmd_AddCommand("flushbans", SV_FlushBans_f);
-	////////////////////////////////////////////////////////////
-  	// separator for forcecvar.patch and sendclientcommand.patch
-  	////////////////////////////////////////////////////////////
+
 	Cmd_AddCommand("forcecvar", SV_ForceCvar_f);
-  	////////////////////////////////////////////////////////////
-  	// separator for forcecvar.patch and sendclientcommand.patch
-  	////////////////////////////////////////////////////////////
-	
-	
+
 	Cmd_AddCommand("rehashrconwhitelist", SV_RehashRconWhitelist_f);
 }
 
