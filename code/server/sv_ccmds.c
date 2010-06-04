@@ -1260,6 +1260,77 @@ static void SV_KillServer_f( void ) {
 	SV_Shutdown( "killserver" );
 }
 
+/*
+==================
+SV_ForceCvar_f_helper
+
+Called internally by SV_ForceCvar_f
+==================
+*/
+static void SV_ForceCvar_f_helper( client_t *cl ) {
+	char	*val;
+	int	len = -1;
+
+	if (strlen(Cmd_Argv(3)) > 0) {
+		val = Info_ValueForKey(cl->userinfo, Cmd_Argv(2));
+		if (val[0])
+			len = strlen(Cmd_Argv(3)) - strlen(val) + strlen(cl->userinfo);
+		else
+			len = strlen(Cmd_Argv(2)) + strlen(Cmd_Argv(3)) + 2 + strlen(cl->userinfo);
+	}
+	if (len >= MAX_INFO_STRING)
+		SV_DropClient(cl, "userinfo string length exceeded");
+	else {
+		// In the case where Cmd_Argv(3) is "", the Info_SetValueForKey() call will
+		// actually just call Info_RemoveKey().
+		Info_SetValueForKey(cl->userinfo, Cmd_Argv(2), Cmd_Argv(3));
+		SV_UserinfoChanged( cl );
+		// call prog code to allow overrides
+		VM_Call( gvm, GAME_CLIENT_USERINFO_CHANGED, cl - svs.clients );
+	}
+}
+
+/*
+==================
+SV_ForceCvar_f
+
+Set a cvar for a user
+==================
+*/
+static void SV_ForceCvar_f( void ) {
+	client_t	*cl;
+	int	i;
+
+	// make sure server is running
+	if ( !com_sv_running->integer ) {
+		Com_Printf( "Server is not running.\n" );
+		return;
+	}
+
+	if ( Cmd_Argc() != 4 || strlen(Cmd_Argv(2)) == 0 ) {
+		Com_Printf ("Usage: forcecvar <player name> <cvar name> <cvar value>\nPlayer may be 'allbots'\n");
+		return;
+	}
+
+	cl = SV_GetPlayerByHandle();
+	if ( !cl ) {
+		if ( !Q_stricmp(Cmd_Argv(1), "allbots") ) {
+			for ( i=0, cl=svs.clients ; i < sv_maxclients->integer ; i++,cl++ ) {
+				if ( !cl->state ) {
+					continue;
+				}
+				if( cl->netchan.remoteAddress.type != NA_BOT ) {
+					continue;
+				}
+				SV_ForceCvar_f_helper(cl);
+			}
+		}
+		return;
+	}
+
+	SV_ForceCvar_f_helper(cl);
+}
+
 //===========================================================
 
 /*
@@ -1324,7 +1395,15 @@ void SV_AddOperatorCommands( void ) {
 	Cmd_AddCommand("bandel", SV_BanDel_f);
 	Cmd_AddCommand("exceptdel", SV_ExceptDel_f);
 	Cmd_AddCommand("flushbans", SV_FlushBans_f);
-
+	////////////////////////////////////////////////////////////
+  	// separator for forcecvar.patch and sendclientcommand.patch
+  	////////////////////////////////////////////////////////////
+	Cmd_AddCommand("forcecvar", SV_ForceCvar_f);
+  	////////////////////////////////////////////////////////////
+  	// separator for forcecvar.patch and sendclientcommand.patch
+  	////////////////////////////////////////////////////////////
+	
+	
 	Cmd_AddCommand("rehashrconwhitelist", SV_RehashRconWhitelist_f);
 }
 
