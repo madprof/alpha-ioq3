@@ -2631,7 +2631,11 @@ void Com_Init( char *commandLine ) {
 	char	*version_string;
 	int	qport;
 
+#ifdef PRODUCT_FORK
 	version_string = va("%s %s %s %s", Q3_VERSION, PRODUCT_FORK, PLATFORM_STRING, __DATE__ );
+#else
+	version_string = va("%s %s %s", Q3_VERSION, PLATFORM_STRING, __DATE__ );
+#endif
 	Com_Printf( "%s\n", version_string );
 
 	if ( setjmp (abortframe) ) {
