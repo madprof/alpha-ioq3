@@ -357,6 +357,7 @@ Kick a user off of the server  FIXME: move to game
 static void SV_Kick_f( void ) {
 	client_t	*cl;
 	int			i;
+	char		*reason = "was kicked";
 
 	// make sure server is running
 	if ( !com_sv_running->integer ) {
@@ -364,9 +365,13 @@ static void SV_Kick_f( void ) {
 		return;
 	}
 
-	if ( Cmd_Argc() != 2 ) {
-		Com_Printf ("Usage: kick <player name>\nkick all = kick everyone\nkick allbots = kick all bots\n");
+	if ( Cmd_Argc() < 2 || Cmd_Argc() > 3 ) {
+		Com_Printf ("Usage: kick <player> <reason>\nkick all = kick everyone\nkick allbots = kick all bots\n");
 		return;
+	}
+
+	if ( Cmd_Argc() == 3 ) {
+		reason = Cmd_Argv(2);
 	}
 
 	cl = SV_GetPlayerByHandle();
@@ -379,7 +384,7 @@ static void SV_Kick_f( void ) {
 				if( cl->netchan.remoteAddress.type == NA_LOOPBACK ) {
 					continue;
 				}
-				SV_DropClient( cl, "was kicked" );
+				SV_DropClient( cl, reason );
 				cl->lastPacketTime = svs.time;	// in case there is a funny zombie
 			}
 		}
@@ -391,7 +396,7 @@ static void SV_Kick_f( void ) {
 				if( cl->netchan.remoteAddress.type != NA_BOT ) {
 					continue;
 				}
-				SV_DropClient( cl, "was kicked" );
+				SV_DropClient( cl, reason );
 				cl->lastPacketTime = svs.time;	// in case there is a funny zombie
 			}
 		}
@@ -402,7 +407,7 @@ static void SV_Kick_f( void ) {
 		return;
 	}
 
-	SV_DropClient( cl, "was kicked" );
+	SV_DropClient( cl, reason );
 	cl->lastPacketTime = svs.time;	// in case there is a funny zombie
 }
 
