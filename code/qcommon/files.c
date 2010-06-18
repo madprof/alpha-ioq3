@@ -2813,7 +2813,11 @@ static void FS_Startup( const char *gameName )
 		homePath = fs_basepath->string;
 	}
 	fs_homepath = Cvar_Get ("fs_homepath", homePath, CVAR_INIT );
+#ifndef STANDALONE
 	fs_gamedirvar = Cvar_Get ("fs_game", "", CVAR_INIT|CVAR_SYSTEMINFO );
+#else
+	fs_gamedirvar = Cvar_Get ("fs_game", "q3ut4", CVAR_INIT|CVAR_SYSTEMINFO );
+#endif
 
 	// add search path elements in reverse priority order
 	if (fs_basepath->string[0]) {
