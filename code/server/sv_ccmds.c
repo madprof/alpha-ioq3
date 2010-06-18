@@ -1179,7 +1179,7 @@ static void SV_ConTell_f(void) {
 		return;
 	}
 
-	strcpy (text, " ");
+	strcpy (text, va("%s ", sv_tellprefix->string));
 	p = Cmd_ArgsFrom(2);
 
 	if ( *p == '"' ) {
@@ -1211,7 +1211,7 @@ static void SV_ConSay_f(void) {
 		return;
 	}
 
-	strcpy (text, "console: ");
+	strcpy (text, va("%s ", sv_sayprefix->string));
 	p = Cmd_Args();
 
 	if ( *p == '"' ) {

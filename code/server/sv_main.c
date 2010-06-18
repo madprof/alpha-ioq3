@@ -77,6 +77,9 @@ int serverBansCount = 0;
 serverBan_t rconWhitelist[MAX_RCON_WHITELIST];
 int rconWhitelistCount = 0;
 
+cvar_t	*sv_tellprefix;
+cvar_t	*sv_sayprefix;
+
 /*
 =============================================================================
 

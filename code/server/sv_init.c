@@ -690,6 +690,9 @@ void SV_Init (void) {
 	Cvar_CheckRange( sv_userinfoDelayMillis, 1000, 10000, qtrue );
 
 	sv_rconWhitelist = Cvar_Get ("sv_rconWhitelist", "whitelist.dat", CVAR_ARCHIVE );
+	
+	sv_sayprefix = Cvar_Get ("sv_sayprefix", "Console:", CVAR_ARCHIVE );
+	sv_tellprefix = Cvar_Get ("sv_tellprefix", "Console_Tell:", CVAR_ARCHIVE );
 
 	// initialize bot cvars so they are listed and can be set before loading the botlib
 	SV_BotInitCvars();
