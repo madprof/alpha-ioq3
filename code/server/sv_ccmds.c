@@ -1090,6 +1090,43 @@ static void SV_KickNum_f( void ) {
 
 /*
 ================
+SV_simpStatus_f
+simple status/ displays slot#, name, ip, and guid of each player
+================
+*/
+static void SV_simpStatus_f( void ) {
+	int			i, j;
+	client_t	*cl;
+	playerState_t	*ps;
+	const char		*s;
+	j=0;
+	for (i=0,cl=svs.clients ; i < sv_maxclients->integer ; i++,cl++)
+	{
+		if (!cl->state)
+			continue;
+		if(j==0) 
+			j=1;
+		Com_Printf ("%i: ", i);
+		ps = SV_GameClientNum( i );
+		Com_Printf ("%s", cl->name);
+		// TTimo adding a ^7 to reset the color
+		// NOTE: colored names in status breaks the padding (WONTFIX)
+		Com_Printf ("^7 ");
+		s = NET_AdrToString( cl->netchan.remoteAddress );
+		Com_Printf ("%s ", s);
+
+		Com_Printf ("%s ", Info_ValueForKey(cl->userinfo, "cl_guid"));
+		
+		Com_Printf ("\n");
+	}
+	if (j==0)
+		Com_Printf ("Server Empty" );
+	
+	Com_Printf ("\n");
+}
+
+/*
+================
 SV_Status_f
 ================
 */
@@ -1444,6 +1481,8 @@ void SV_AddOperatorCommands( void ) {
 	Cmd_AddCommand("forcecvar", SV_ForceCvar_f);
 
 	Cmd_AddCommand("rehashrconwhitelist", SV_RehashRconWhitelist_f);
+	
+	Cmd_AddCommand("sstatus", SV_simpStatus_f);
 }
 
 /*
@@ -1466,6 +1505,7 @@ void SV_RemoveOperatorCommands( void ) {
 	Cmd_RemoveCommand ("sectorlist");
 	Cmd_RemoveCommand ("say");
 	Cmd_RemoveCommand ("tell");
+	Cmd_RemoveCommand ("sstatus");
 #endif
 }
 
