@@ -1090,37 +1090,41 @@ static void SV_KickNum_f( void ) {
 
 /*
 ================
-SV_simpStatus_f
-simple status/ displays slot#, name, ip, and guid of each player
+SV_AlphaStatus_f
+displays slot#, name, ip, guid, time, and team for each player
 ================
 */
-static void SV_simpStatus_f( void ) {
-	int			i, j;
+static void SV_AlphaStatus_f(void) {
+	int		i, numClients = 0, time, team;
 	client_t	*cl;
 	playerState_t	*ps;
-	const char		*s;
-	j=0;
-	for (i=0,cl=svs.clients ; i < sv_maxclients->integer ; i++,cl++)
-	{
-		if (!cl->state)
-			continue;
-		if(j==0) 
-			j=1;
-		Com_Printf ("%i: ", i);
-		ps = SV_GameClientNum( i );
-		Com_Printf ("%s", cl->name);
-		// TTimo adding a ^7 to reset the color
-		// NOTE: colored names in status breaks the padding (WONTFIX)
-		Com_Printf ("^7 ");
-		s = NET_AdrToString( cl->netchan.remoteAddress );
-		Com_Printf ("%s ", s);
+	const char	*name, *ip, *guid;
 
-		Com_Printf ("%s ", Info_ValueForKey(cl->userinfo, "cl_guid"));
-		
-		Com_Printf ("\n");
+	if (!com_sv_running->integer) {
+		Com_Printf("Server is not running.\n");
+		return;
 	}
-	if (j==0)
-		Com_Printf ("Server Empty" );
+
+	for (i=0, cl=svs.clients; i < sv_maxclients->integer; i++, cl++) {
+		if (!cl->state) {
+			continue;
+		}
+
+		name = cl->name;
+		ip = NET_AdrToString(cl->netchan.remoteAddress);
+		guid = Info_ValueForKey(cl->userinfo, "cl_guid");
+		time = svs.time - cl->lastConnectTime;
+		ps = SV_GameClientNum(i);
+		team = ps->persistant[PERS_TEAM];
+
+		Com_Printf("%i: %s^7 %s %s %i %i\n", i, name, ip, guid, time, team);
+
+		numClients++;
+	}
+
+	if (numClients == 0) {
+		Com_Printf ("Server Empty");
+	}
 	
 	Com_Printf ("\n");
 }
@@ -1482,7 +1486,7 @@ void SV_AddOperatorCommands( void ) {
 
 	Cmd_AddCommand("rehashrconwhitelist", SV_RehashRconWhitelist_f);
 	
-	Cmd_AddCommand("sstatus", SV_simpStatus_f);
+	Cmd_AddCommand("alphastatus", SV_AlphaStatus_f);
 }
 
 /*
@@ -1505,7 +1509,7 @@ void SV_RemoveOperatorCommands( void ) {
 	Cmd_RemoveCommand ("sectorlist");
 	Cmd_RemoveCommand ("say");
 	Cmd_RemoveCommand ("tell");
-	Cmd_RemoveCommand ("sstatus");
+	Cmd_RemoveCommand ("alphastatus");
 #endif
 }
 
