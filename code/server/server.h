@@ -294,6 +294,7 @@ extern	cvar_t	*sv_userinfoDelayMillis;
 extern	cvar_t	*sv_rconWhitelist;
 
 extern	cvar_t	*sv_alphaHubHost;
+extern	cvar_t	*sv_alphaHubKey;
 
 extern	serverBan_t serverBans[SERVER_MAXBANS];
 extern	int serverBansCount;

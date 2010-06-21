@@ -72,6 +72,7 @@ cvar_t	*sv_rconWhitelist;	// file (same format as serverbans.dat) containing IP
 				// "whitelist.dat" (use "" to disable)
 
 cvar_t	*sv_alphaHubHost;	// hostname/port of hub we are using, default "" (disabled)
+cvar_t	*sv_alphaHubKey;	// encryption key of hub we are using, default "defaultkey123456"
 
 serverBan_t serverBans[SERVER_MAXBANS];
 int serverBansCount = 0;

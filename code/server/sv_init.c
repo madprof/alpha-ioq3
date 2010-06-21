@@ -747,6 +747,7 @@ void SV_Init (void) {
 	sv_tellprefix = Cvar_Get ("sv_tellprefix", "console_tell: ", CVAR_ARCHIVE );
 
 	sv_alphaHubHost = Cvar_Get ("sv_alphaHubHost", "", CVAR_LATCH);
+	sv_alphaHubKey = Cvar_Get ("sv_alphaHubKey", "defaultkey123456", CVAR_ARCHIVE);
 
 	// [mad] can't SV_ResolveAlphaHubHost() here since NET_Init() hasn't been
 	// called yet; works if we move SV_ResolveAlphaHubHost() to sys/sys_main.c

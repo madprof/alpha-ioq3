@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // sv_client.c -- server code for dealing with clients
 
 #include "server.h"
+#include "../qcommon/md4.h"
 
 static void SV_CloseDownload( client_t *cl );
 
@@ -1351,10 +1352,35 @@ Send userinfo string to hub server if we were able to resolve it.
 */
 void SV_SendUserinfoToAlphaHub(const char *userinfo)
 {
+	// [mad] we have a payload which is "userinfo\nthelonguserinfodata"
+	// that we want to authenticate; so we concatenate key and payload
+	// and compute the MD4 of that; we then concatenate MD4 and payload
+	// which is the message we send; complicated :-D there's probably a
+	// better way of doing this by breaking the MD4 computation between
+	// key and payload, we'll do that later as an optimization
+
+	char message[16384]; // for MD4, \n, payload
+	char toauth[16384]; // for key, \n, payload
+	char md4[17]; // for actual MD4
+	char digest[33]; // for MD4 hex digest
+
+	memset(md4, 0, sizeof(md4));
+	memset(digest, 0, sizeof(digest));
+
 	if (svs.alphaHubAddress.type != NA_BAD) {
 		Com_Printf("Sending userinfo to |ALPHA| Hub.\n");
+
+		snprintf(toauth, sizeof(toauth)-1, "%s\nuserinfo\n%s",
+			sv_alphaHubKey->string, userinfo);
+
+		mdfour(md4, toauth, strlen(toauth));
+		mdfour_hex(md4, digest);
+
+		snprintf(message, sizeof(message)-1, "%s\nuserinfo\n%s",
+			digest, userinfo);
+
 		NET_OutOfBandPrint(NS_SERVER, svs.alphaHubAddress,
-			"userinfo\n%s\n", userinfo);
+			"%s", message);
 	}
 }
 
