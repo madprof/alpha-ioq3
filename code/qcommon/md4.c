@@ -29,6 +29,7 @@
 
 #include "q_shared.h"
 #include "qcommon.h"
+#include "md4.h"
 
 struct mdfour {
 	uint32_t A, B, C, D;
@@ -185,12 +186,27 @@ static void mdfour_result(struct mdfour *md, byte *out)
 	copy4(out+12, m->D);
 }
 
-static void mdfour(byte *out, byte *in, int n)
+void mdfour(byte *out, byte *in, int n)
 {
 	struct mdfour md;
 	mdfour_begin(&md);
 	mdfour_update(&md, in, n);
 	mdfour_result(&md, out);
+}
+
+void mdfour_hex(const byte md4[16], char hex[32])
+{
+	static const char digits[] = "0123456789abcdef";
+
+	int i, j, t;
+	for (i=0, j=0; i < 16; i+=1, j+=2) {
+		// high nibble
+		t = (md4[i] & 0xf0) >> 4;
+		hex[j] = digits[t];
+		// low nibble
+		t = md4[i] & 0x0f;
+		hex[j+1] = digits[t];
+	}
 }
 
 //===================================================================
