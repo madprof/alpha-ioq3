@@ -172,6 +172,7 @@ static void SV_Map_f( void ) {
 
 	// force latched values to get set
 	Cvar_Get ("g_gametype", "0", CVAR_SERVERINFO | CVAR_USERINFO | CVAR_LATCH );
+	Cvar_Get ("sv_alphaHubHost", "", CVAR_LATCH );
 
 	cmd = Cmd_Argv(0);
 	if( Q_stricmpn( cmd, "sp", 2 ) == 0 ) {

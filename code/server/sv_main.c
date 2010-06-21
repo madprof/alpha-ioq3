@@ -71,6 +71,8 @@ cvar_t	*sv_rconWhitelist;	// file (same format as serverbans.dat) containing IP
 				// addresses allowed to execute RCON commands, default
 				// "whitelist.dat" (use "" to disable)
 
+cvar_t	*sv_alphaHubHost;	// hostname/port of hub we are using, default "" (disabled)
+
 serverBan_t serverBans[SERVER_MAXBANS];
 int serverBansCount = 0;
 

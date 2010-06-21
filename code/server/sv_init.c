@@ -24,6 +24,47 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 
 /*
+==================
+SV_ResolveAlphaHubHost
+
+Resolve the host/port in sv_alphaHubHost to the netadr_t
+svs.alphaHubAddress which we can use to send packets; if
+we fail to resolve, svs.alphaHubAddress.type == NA_BAD.
+==================
+*/
+
+void SV_ResolveAlphaHubHost(void)
+{
+	char		*host = sv_alphaHubHost->string;
+	netadr_t	*address = &svs.alphaHubAddress;
+	int		result = -1;
+
+	if (host && host[0]) {
+		Com_Printf("Resolving |ALPHA| Hub %s.\n", host);
+		result = NET_StringToAdr(host, address, NA_UNSPEC);
+		switch (result) {
+		case 0:
+			Com_Printf("Completely failed to resolve %s.\n", host);
+			break;
+		case 1:
+			Com_Printf("Resolved %s to %s.\n", host, NET_AdrToStringwPort(*address));
+			break;
+		case 2:
+			Com_Printf("Failed to resolve a port for %s.\n", host);
+			address->type = NA_BAD;
+			break;
+		default:
+			Com_Printf("Unknown error %d from NET_StringToAdr()!\n", result);
+			break;
+		}
+	}
+
+	// [mad] had to add this to avoid a double-call to SV_ResolveAlphaHubHost(),
+	// not sure why yet...
+	sv_alphaHubHost->modified = qfalse;
+}
+
+/*
 ===============
 SV_SendConfigstring
 
@@ -278,6 +319,12 @@ static void SV_Startup( void ) {
 	}
 	svs.initialized = qtrue;
 
+	// [mad] try to resolve the hub once when the first ever
+	// map is started on the server; we'll only try again if
+	// sv_alphaHubHost was modified and the server was (soft)
+	// restarted using SpawnServer()
+	SV_ResolveAlphaHubHost();
+
 	// Don't respect sv_killserver unless a server is actually running
 	if ( sv_killserver->integer ) {
 		Cvar_Set( "sv_killserver", "0" );
@@ -437,6 +484,11 @@ void SV_SpawnServer( char *server, qboolean killBots ) {
 		// check for maxclients change
 		if ( sv_maxclients->modified ) {
 			SV_ChangeMaxClients();
+		}
+		// if sv_alphaHubHost was changed, resolve the address again
+		if (sv_alphaHubHost->modified) {
+			sv_alphaHubHost->modified = qfalse;
+			SV_ResolveAlphaHubHost();
 		}
 	}
 
@@ -693,6 +745,16 @@ void SV_Init (void) {
 	
 	sv_sayprefix = Cvar_Get ("sv_sayprefix", "console: ", CVAR_ARCHIVE );
 	sv_tellprefix = Cvar_Get ("sv_tellprefix", "console_tell: ", CVAR_ARCHIVE );
+
+	sv_alphaHubHost = Cvar_Get ("sv_alphaHubHost", "", CVAR_LATCH);
+
+	// [mad] can't SV_ResolveAlphaHubHost() here since NET_Init() hasn't been
+	// called yet; works if we move SV_ResolveAlphaHubHost() to sys/sys_main.c
+	// but that's introducing another #ifdef DEDICATED there, kinda sad; seems
+	// that Rambetter added his stuff in SV_Frame() but that incurs (at least
+	// some) overhead on each frame; the overhead may not be so bad since the
+	// HEARTBEAT stuff is also handled in SV_Frame(), who knows; but we found
+	// a better way: SV_Startup() and SV_SpawnServer(), check the code there!
 
 	// initialize bot cvars so they are listed and can be set before loading the botlib
 	SV_BotInitCvars();

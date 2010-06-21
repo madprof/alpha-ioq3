@@ -233,6 +233,8 @@ typedef struct {
 	netadr_t	redirectAddress;			// for rcon return messages
 
 	netadr_t	authorizeAddress;			// for rcon return messages
+
+	netadr_t	alphaHubAddress;	// address of hub we're using
 } serverStatic_t;
 
 #define SERVER_MAXBANS	16384
@@ -290,6 +292,8 @@ extern	cvar_t	*sv_requireValidGuid;
 extern	cvar_t	*sv_userinfoDelayMillis;
 
 extern	cvar_t	*sv_rconWhitelist;
+
+extern	cvar_t	*sv_alphaHubHost;
 
 extern	serverBan_t serverBans[SERVER_MAXBANS];
 extern	int serverBansCount;
