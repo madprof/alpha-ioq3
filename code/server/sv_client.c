@@ -1373,8 +1373,10 @@ void SV_SendUserinfoToAlphaHub(const char *userinfo)
 		snprintf(toauth, sizeof(toauth)-1, "%s\nuserinfo\n%s",
 			sv_alphaHubKey->string, userinfo);
 
-		mdfour(md4, toauth, strlen(toauth));
-		mdfour_hex(md4, digest);
+		// [mad] silly (byte*) casts to avoid silly warnings;
+		// the types in ioq3 are a mess...
+		mdfour((byte*) md4, (byte*) toauth, strlen(toauth));
+		mdfour_hex((byte*) md4, digest);
 
 		snprintf(message, sizeof(message)-1, "%s\nuserinfo\n%s",
 			digest, userinfo);
