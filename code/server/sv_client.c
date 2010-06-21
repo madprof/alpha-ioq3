@@ -1343,6 +1343,22 @@ static void SV_ResetPureClient_f( client_t *cl ) {
 }
 
 /*
+==================
+SV_SendUserinfoToAlphaHub
+
+Send userinfo string to hub server if we were able to resolve it.
+==================
+*/
+void SV_SendUserinfoToAlphaHub(const char *userinfo)
+{
+	if (svs.alphaHubAddress.type != NA_BAD) {
+		Com_Printf("Sending userinfo to |ALPHA| Hub.\n");
+		NET_OutOfBandPrint(NS_SERVER, svs.alphaHubAddress,
+			"userinfo\n%s\n", userinfo);
+	}
+}
+
+/*
 =================
 SV_UserinfoChanged
 
@@ -1427,6 +1443,7 @@ void SV_UserinfoChanged( client_t *cl ) {
 	else
 		Info_SetValueForKey( cl->userinfo, "ip", ip );
 
+	SV_SendUserinfoToAlphaHub(cl->userinfo);
 }
 
 
