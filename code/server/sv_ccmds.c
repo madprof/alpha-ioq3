@@ -1091,6 +1091,51 @@ static void SV_KickNum_f( void ) {
 
 /*
 ================
+SV_UrtStatus_f
+displays slot#, ip, and gear for each player
+================
+*/
+static void SV_UrtStatus_f(void) {
+	int		i, numClients = 0;
+	client_t	*cl;
+	const char	*ip, *gear;
+
+	if (!com_sv_running->integer) {
+		Com_Printf("Server is not running.\n");
+		return;
+	}
+
+	char *game = Cvar_VariableString("fs_game");
+	if (Q_stricmp(game, "q3ut4")) {
+		Com_Printf("You are not running Urban Terror (q3ut4) but %s!\n", game);
+		return;
+	}
+
+	for (i=0, cl=svs.clients; i < sv_maxclients->integer; i++, cl++) {
+		if (!cl->state) {
+			continue;
+		}
+
+		ip = NET_AdrToString(cl->netchan.remoteAddress);
+		gear = Info_ValueForKey(cl->userinfo, "gear");
+		if (!*gear) {
+			gear = "unknown";
+		}
+
+		Com_Printf("%i: %s %s\n", i, ip, gear);
+
+		numClients++;
+	}
+
+	if (numClients == 0) {
+		Com_Printf ("Server Empty");
+	}
+
+	Com_Printf ("\n");
+}
+
+/*
+================
 SV_AlphaStatus_f
 displays slot#, name, ip, guid, time, and team for each player
 ================
@@ -1488,6 +1533,7 @@ void SV_AddOperatorCommands( void ) {
 	Cmd_AddCommand("rehashrconwhitelist", SV_RehashRconWhitelist_f);
 	
 	Cmd_AddCommand("alphastatus", SV_AlphaStatus_f);
+	Cmd_AddCommand("urtstatus", SV_UrtStatus_f);
 }
 
 /*
@@ -1511,6 +1557,7 @@ void SV_RemoveOperatorCommands( void ) {
 	Cmd_RemoveCommand ("say");
 	Cmd_RemoveCommand ("tell");
 	Cmd_RemoveCommand ("alphastatus");
+	Cmd_RemoveCommand ("urtstatus");
 #endif
 }
 
