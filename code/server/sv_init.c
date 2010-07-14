@@ -738,6 +738,8 @@ void SV_Init (void) {
 
 	sv_requireValidGuid = Cvar_Get ("sv_requireValidGuid", "1", CVAR_ARCHIVE );
 
+	sv_userinfoDelayBurst = Cvar_Get ("sv_userinfoDelayBurst", "7", CVAR_ARCHIVE );
+	Cvar_CheckRange( sv_userinfoDelayBurst, 1, 20, qtrue );
 	sv_userinfoDelayMillis = Cvar_Get ("sv_userinfoDelayMillis", "3000", CVAR_ARCHIVE );
 	Cvar_CheckRange( sv_userinfoDelayMillis, 1000, 10000, qtrue );
 

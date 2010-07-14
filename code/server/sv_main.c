@@ -65,6 +65,7 @@ cvar_t	*sv_block1337;			// whether to block clients with qport 1337,
 cvar_t	*sv_requireValidGuid;	// whether client userinfo must contain a cl_guid, string of length 32 consisting
 				// of characters '0' through '9' and 'A' through 'F', default 1 require
 
+cvar_t	*sv_userinfoDelayBurst;		// number of times userinfo can change in userinfoDelayMillis, default 7
 cvar_t	*sv_userinfoDelayMillis;	// milliseconds that must pass between userinfo changes, default 3000
 
 cvar_t	*sv_rconWhitelist;	// file (same format as serverbans.dat) containing IP

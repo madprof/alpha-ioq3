@@ -289,6 +289,7 @@ extern	cvar_t	*sv_block1337;
 
 extern	cvar_t	*sv_requireValidGuid;
 
+extern	cvar_t	*sv_userinfoDelayBurst;
 extern	cvar_t	*sv_userinfoDelayMillis;
 
 extern	cvar_t	*sv_rconWhitelist;
