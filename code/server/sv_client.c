@@ -744,30 +744,20 @@ a team-based gametype, bad things happen: Players will be
 on colored teams but colored teams don't exist so they do
 not show up on the score board. They also seem to change
 colors when shot. Fun and all, but not very convenient if
-you want to run a mixed-mode server. This this kludge.
+you want to run a mixed-mode server. Thus this kludge.
 ===================
 */
 static void SV_UrT_FreeForAll_Kludge(client_t *client)
 {
 	int slot, team;
-	playerState_t *ps;
+	playerState_t *state;
 
-	Com_DPrintf("SV_UrT_FreeForAll_Kludge() called\n");
-
-	// only relevant in FFA gametype
 	if (Cvar_VariableValue("g_gametype") == GT_FFA) {
-		Com_DPrintf("SV_UrT_FreeForAll_Kludge() confirmed FFA\n");
-		// locate slot number; TODO: we could add the slot to client_t?
-		for (slot = 0; slot < sv_maxclients->integer; slot++) {
-			if (client == &svs.clients[slot]) {
-				Com_DPrintf("SV_UrT_FreeForAll_Kludge() found player in slot %i\n", slot);
-				break;
-			}
-		}
-		// check teams and change them if necessary
-		ps = SV_GameClientNum(slot);
-		team = ps->persistant[PERS_TEAM];
-		Com_DPrintf("SV_UrT_FreeForAll_Kludge() found team %i for slot %i\n", team, slot);
+		slot = client - svs.clients;
+		state = SV_GameClientNum(slot);
+		team = state->persistant[PERS_TEAM];
+		Com_DPrintf("SV_UrT_FreeForAll_Kludge() found team %i for player %i\n", team, slot);
+
 		if (team == TEAM_RED || team == TEAM_BLUE) {
 			Cmd_ExecuteString (va("forceteam %i spectator", slot));
 			Cmd_ExecuteString (va("forceteam %i ffa", slot));
