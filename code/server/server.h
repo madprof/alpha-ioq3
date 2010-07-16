@@ -187,6 +187,12 @@ typedef struct client_s {
 	int queuedVoipPackets;
 #endif
 
+	qboolean	demo_recording;	// are we currently recording this client?
+	fileHandle_t	demo_file;	// the file we are writing the demo to
+	qboolean	demo_waiting;	// are we still waiting for the first non-delta frame?
+	int		demo_backoff;	// how many packets (-1 actually) between non-delta frames?
+	int		demo_deltas;	// how many delta frames did we let through so far?
+
 	int				oldServerTime;
 	qboolean			csUpdated[MAX_CONFIGSTRINGS+1];	
 } client_t;
@@ -297,6 +303,8 @@ extern	cvar_t	*sv_rconWhitelist;
 extern	cvar_t	*sv_alphaHubHost;
 extern	cvar_t	*sv_alphaHubKey;
 
+extern	cvar_t	*sv_demonotice;
+
 extern	serverBan_t serverBans[SERVER_MAXBANS];
 extern	int serverBansCount;
 
@@ -377,6 +385,7 @@ void SV_WriteVoipToClient( client_t *cl, msg_t *msg );
 // sv_ccmds.c
 //
 void SV_Heartbeat_f( void );
+void SVD_WriteDemoFile(const client_t*, const msg_t*);
 
 //
 // sv_snapshot.c

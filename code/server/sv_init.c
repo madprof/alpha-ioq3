@@ -567,6 +567,9 @@ void SV_SpawnServer( char *server, qboolean killBots ) {
 	// create a baseline for more efficient communications
 	SV_CreateBaseline ();
 
+	// stop server-side demo (if any)
+	Cbuf_ExecuteText(EXEC_NOW, "stopserverdemo all");
+
 	for (i=0 ; i<sv_maxclients->integer ; i++) {
 		// send the new gamestate to all connected clients
 		if (svs.clients[i].state >= CS_CONNECTED) {
@@ -751,6 +754,8 @@ void SV_Init (void) {
 	sv_alphaHubHost = Cvar_Get ("sv_alphaHubHost", "", CVAR_LATCH);
 	sv_alphaHubKey = Cvar_Get ("sv_alphaHubKey", "defaultkey123456", CVAR_ARCHIVE);
 
+	sv_demonotice = Cvar_Get ("sv_demonotice", "Smile! You're on camera!", CVAR_ARCHIVE);
+
 	// [mad] can't SV_ResolveAlphaHubHost() here since NET_Init() hasn't been
 	// called yet; works if we move SV_ResolveAlphaHubHost() to sys/sys_main.c
 	// but that's introducing another #ifdef DEDICATED there, kinda sad; seems
@@ -819,6 +824,9 @@ void SV_Shutdown( char *finalmsg ) {
 	}
 
 	Com_Printf( "----- Server Shutdown (%s) -----\n", finalmsg );
+
+	// stop server-side demos (if any)
+	Cbuf_ExecuteText(EXEC_NOW, "stopserverdemo all");
 
 	NET_LeaveMulticast6();
 
