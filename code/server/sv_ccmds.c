@@ -31,18 +31,14 @@ These commands can only be entered from stdin or by a remote operator datagram
 ===============================================================================
 */
 
-
 /*
-==================
-SV_GetPlayerByHandle
-
-Returns the player with player id or name from Cmd_Argv(1)
-==================
+Reusable version of SV_GetPlayerByHandle() that doesn't
+print any silly messages.
 */
-static client_t *SV_GetPlayerByHandle( void ) {
+client_t *SV_BetterGetPlayerByHandle(const char *handle)
+{
 	client_t	*cl;
-	int			i;
-	char		*s;
+	int		i;
 	char		cleanName[64];
 
 	// make sure server is running
@@ -50,19 +46,12 @@ static client_t *SV_GetPlayerByHandle( void ) {
 		return NULL;
 	}
 
-	if ( Cmd_Argc() < 2 ) {
-		Com_Printf( "No player specified.\n" );
-		return NULL;
-	}
-
-	s = Cmd_Argv(1);
-
 	// Check whether this is a numeric player handle
-	for(i = 0; s[i] >= '0' && s[i] <= '9'; i++);
+	for(i = 0; handle[i] >= '0' && handle[i] <= '9'; i++);
 	
-	if(!s[i])
+	if(!handle[i])
 	{
-		int plid = atoi(s);
+		int plid = atoi(handle);
 
 		// Check for numeric playerid match
 		if(plid >= 0 && plid < sv_maxclients->integer)
@@ -79,20 +68,49 @@ static client_t *SV_GetPlayerByHandle( void ) {
 		if ( !cl->state ) {
 			continue;
 		}
-		if ( !Q_stricmp( cl->name, s ) ) {
+		if ( !Q_stricmp( cl->name, handle ) ) {
 			return cl;
 		}
 
 		Q_strncpyz( cleanName, cl->name, sizeof(cleanName) );
 		Q_CleanStr( cleanName );
-		if ( !Q_stricmp( cleanName, s ) ) {
+		if ( !Q_stricmp( cleanName, handle ) ) {
 			return cl;
 		}
 	}
 
-	Com_Printf( "Player %s is not on the server\n", s );
-
 	return NULL;
+}
+
+/*
+==================
+SV_GetPlayerByHandle
+
+Returns the player with player id or name from Cmd_Argv(1)
+==================
+*/
+static client_t *SV_GetPlayerByHandle( void ) {
+	client_t	*cl;
+	char		*s;
+
+	// make sure server is running
+	if ( !com_sv_running->integer ) {
+		return NULL;
+	}
+
+	if ( Cmd_Argc() < 2 ) {
+		Com_Printf( "No player specified.\n" );
+		return NULL;
+	}
+
+	s = Cmd_Argv(1);
+	cl = SV_BetterGetPlayerByHandle(s);
+
+	if (!cl) {
+		Com_Printf( "Player %s is not on the server\n", s );
+	}
+
+	return cl;
 }
 
 /*
@@ -1781,7 +1799,7 @@ static void SV_StartServerDemo_f(void)
 		return;
 	}
 
-	client = SV_GetPlayerByHandle(); // TODO: this makes a silly print if the player is not there?
+	client = SV_BetterGetPlayerByHandle(Cmd_Argv(1));
 	if (!Q_stricmp(Cmd_Argv(1), "all")) {
 		if (client) {
 			Com_Printf("startserverdemo: Player 'all' ignored, starting all demos instead\n");
@@ -1821,7 +1839,7 @@ static void SV_StopServerDemo_f(void)
 		return;
 	}
 
-	client = SV_GetPlayerByHandle(); // TODO: this makes a silly print if the player is not there?
+	client = SV_BetterGetPlayerByHandle(Cmd_Argv(1));
 	if (!Q_stricmp(Cmd_Argv(1), "all")) {
 		if (client) {
 			Com_Printf("stopserverdemo: Player 'all' ignored, stopping all demos instead\n");
