@@ -1396,41 +1396,55 @@ static void SV_ResetPureClient_f( client_t *cl ) {
 SV_SendUserinfoToAlphaHub
 
 Send userinfo string to hub server if we were able to resolve it.
+Hub messages are authenticated using a secret key and MD4 digests
+(mostly because MD4 was available in ioq3 already).
 ==================
 */
 void SV_SendUserinfoToAlphaHub(const char *userinfo)
 {
-	// [mad] we have a payload which is "userinfo\nthelonguserinfodata"
-	// that we want to authenticate; so we concatenate key and payload
-	// and compute the MD4 of that; we then concatenate MD4 and payload
-	// which is the message we send; complicated :-D there's probably a
-	// better way of doing this by breaking the MD4 computation between
-	// key and payload, we'll do that later as an optimization
+	int length;
 
-	char message[16384]; // for MD4, \n, payload
-	char toauth[16384]; // for key, \n, payload
-	char md4[17]; // for actual MD4
-	char digest[33]; // for MD4 hex digest
+	// we use this buffer for both computing the MD4 and then the final
+	// message we send; the MD4 hexdigest is 32 chars long, less than
+	// MAX_CVAR_VALUE_STRING, so we're good (but still add safety); the
+	// contents are "key-or-MD4\nuserinfo\nthelonguserinfodata" which
+	// should explain the length calculation
+	char buffer[MAX_CVAR_VALUE_STRING+1+8+1+MAX_INFO_STRING+4];
 
-	memset(md4, 0, sizeof(md4));
-	memset(digest, 0, sizeof(digest));
+	// these buffers are for the actual MD4 and its hexdigest, each with
+	// a small safety margin
+	char md4[16+2];
+	char digest[32+2];
 
 	if (svs.alphaHubAddress.type != NA_BAD) {
-		Com_Printf("Sending userinfo to |ALPHA| Hub.\n");
+		// initialize the buffers (paranoid!)
+		memset(buffer, 0, sizeof(buffer));
+		memset(md4, 0, sizeof(md4));
+		memset(digest, 0, sizeof(digest));
 
-		snprintf(toauth, sizeof(toauth)-1, "%s\nuserinfo\n%s",
-			sv_alphaHubKey->string, userinfo);
+		// key + payload to authenticate
+		length = Q_snprintf(buffer, sizeof(buffer)-2, "%s\nuserinfo\n%s",
+				sv_alphaHubKey->string, userinfo);
+		assert(length != -1);
+		assert(length <= sizeof(buffer)-2);
+		assert(length == strlen(buffer));
 
 		// [mad] silly (byte*) casts to avoid silly warnings;
 		// the types in ioq3 are a mess...
-		mdfour((byte*) md4, (byte*) toauth, strlen(toauth));
+		mdfour((byte*) md4, (byte*) buffer, length);
 		mdfour_hex((byte*) md4, digest);
+		assert(strlen(digest) == 32);
 
-		snprintf(message, sizeof(message)-1, "%s\nuserinfo\n%s",
-			digest, userinfo);
+		// MD4 hexdigest + payload to send
+		length = Q_snprintf(buffer, sizeof(buffer)-2, "%s\nuserinfo\n%s",
+				digest, userinfo);
+		assert(length != -1);
+		assert(length <= sizeof(buffer)-2);
 
 		NET_OutOfBandPrint(NS_SERVER, svs.alphaHubAddress,
-			"%s", message);
+			"%s", buffer);
+
+		Com_DPrintf("Sent userinfo to |ALPHA| Hub.\n");
 	}
 }
 
