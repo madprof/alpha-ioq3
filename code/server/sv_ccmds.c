@@ -1630,7 +1630,7 @@ static void SVD_CleanPlayerName(char *name)
 		if (Q_IsColorString(src)) {
 			src++;
 		}
-		else if (c == ':' || c == '\\' || c == '/') {
+		else if (c == ':' || c == '\\' || c == '/' || c == '*' || c == '?') {
 			*dst++ = '%';
 		}
 		else if (c > ' ' && c < 0x7f) {
@@ -1682,7 +1682,7 @@ static void SV_NameServerDemo(char *filename, int length, const client_t *client
 
 static void SV_StartRecordOne(client_t *client)
 {
-	char path[MAX_QPATH];
+	char path[MAX_OSPATH];
 
 	Com_DPrintf("SV_StartRecordOne\n");
 
