@@ -156,6 +156,9 @@ cvar_t	*r_saveFontData;
 
 cvar_t	*r_marksOnTriangleMeshes;
 
+cvar_t	*r_aviMotionJpegQuality;
+cvar_t	*r_screenshotJpegQuality;
+
 cvar_t	*r_maxpolys;
 int		max_polys;
 cvar_t	*r_maxpolyverts;
@@ -283,7 +286,7 @@ vidmode_t r_vidModes[] =
 	{ "Mode 10: 2048x1536",		2048,	1536,	1 },
 	{ "Mode 11: 856x480 (wide)",856,	480,	1 }
 };
-static int	s_numVidModes = ( sizeof( r_vidModes ) / sizeof( r_vidModes[0] ) );
+static int	s_numVidModes = ARRAY_LEN( r_vidModes );
 
 qboolean R_GetModeInfo( int *width, int *height, float *windowAspect, int mode ) {
 	vidmode_t	*vm;
@@ -394,18 +397,20 @@ RB_TakeScreenshotJPEG
 */  
 void RB_TakeScreenshotJPEG( int x, int y, int width, int height, char *fileName ) {
 	byte		*buffer;
+	size_t memcount;
 
-	buffer = ri.Hunk_AllocateTempMemory(glConfig.vidWidth*glConfig.vidHeight*4);
+	memcount = glConfig.vidWidth * glConfig.vidHeight * 3;
 
-	qglReadPixels( x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer ); 
+	buffer = ri.Hunk_AllocateTempMemory(memcount);
+
+	qglReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, buffer);
 
 	// gamma correct
-	if ( glConfig.deviceSupportsGamma ) {
-		R_GammaCorrect( buffer, glConfig.vidWidth * glConfig.vidHeight * 4 );
-	}
+	if(glConfig.deviceSupportsGamma)
+		R_GammaCorrect(buffer, memcount);
 
 	ri.FS_WriteFile( fileName, buffer, 1 );		// create path
-	SaveJPG( fileName, 90, glConfig.vidWidth, glConfig.vidHeight, buffer);
+	RE_SaveJPG(fileName, r_screenshotJpegQuality->integer, glConfig.vidWidth, glConfig.vidHeight, buffer);
 
 	ri.Hunk_FreeTempMemory( buffer );
 }
@@ -695,36 +700,37 @@ RB_TakeVideoFrameCmd
 const void *RB_TakeVideoFrameCmd( const void *data )
 {
 	const videoFrameCommand_t	*cmd;
-	int												frameSize;
-	int												i;
+	size_t				memcount;
+	int				i;
 	
 	cmd = (const videoFrameCommand_t *)data;
 	
-	qglReadPixels( 0, 0, cmd->width, cmd->height, GL_RGBA,
-			GL_UNSIGNED_BYTE, cmd->captureBuffer );
+	qglReadPixels(0, 0, cmd->width, cmd->height, GL_RGB,
+		GL_UNSIGNED_BYTE, cmd->captureBuffer);
+
+	memcount = cmd->width * cmd->height * 3;
 
 	// gamma correct
 	if( glConfig.deviceSupportsGamma )
-		R_GammaCorrect( cmd->captureBuffer, cmd->width * cmd->height * 4 );
+		R_GammaCorrect(cmd->captureBuffer, memcount);
 
 	if( cmd->motionJpeg )
 	{
-		frameSize = SaveJPGToBuffer( cmd->encodeBuffer, 90,
-				cmd->width, cmd->height, cmd->captureBuffer );
-		ri.CL_WriteAVIVideoFrame( cmd->encodeBuffer, frameSize );
+		memcount = RE_SaveJPGToBuffer(cmd->encodeBuffer, memcount,
+			r_aviMotionJpegQuality->integer,
+			cmd->width, cmd->height, cmd->captureBuffer);
+		ri.CL_WriteAVIVideoFrame(cmd->encodeBuffer, memcount);
 	}
 	else
 	{
-		frameSize = cmd->width * cmd->height;
-
-		for( i = 0; i < frameSize; i++)    // Pack to 24bpp and swap R and B
+		for(i = 0; i < memcount; i += 3)    // swap R and B
 		{
-			cmd->encodeBuffer[ i*3 ]     = cmd->captureBuffer[ i*4 + 2 ];
-			cmd->encodeBuffer[ i*3 + 1 ] = cmd->captureBuffer[ i*4 + 1 ];
-			cmd->encodeBuffer[ i*3 + 2 ] = cmd->captureBuffer[ i*4 ];
+			cmd->encodeBuffer[i]     = cmd->captureBuffer[i + 2];
+			cmd->encodeBuffer[i + 1] = cmd->captureBuffer[i + 1];
+			cmd->encodeBuffer[i + 2] = cmd->captureBuffer[i];
 		}
 
-		ri.CL_WriteAVIVideoFrame( cmd->encodeBuffer, frameSize * 3 );
+		ri.CL_WriteAVIVideoFrame(cmd->encodeBuffer, memcount);
 	}
 
 	return (const void *)(cmd + 1);	
@@ -920,6 +926,7 @@ void R_Register( void )
 	r_stereoEnabled = ri.Cvar_Get( "r_stereoEnabled", "0", CVAR_ARCHIVE | CVAR_LATCH);
 	r_ignoreFastPath = ri.Cvar_Get( "r_ignoreFastPath", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_greyscale = ri.Cvar_Get("r_greyscale", "0", CVAR_ARCHIVE | CVAR_LATCH);
+	ri.Cvar_CheckRange(r_greyscale, 0, 1, qfalse);
 
 	//
 	// temporary latched variables that can only change over a restart
@@ -1010,6 +1017,9 @@ void R_Register( void )
 	r_shadows = ri.Cvar_Get( "cg_shadows", "1", 0 );
 
 	r_marksOnTriangleMeshes = ri.Cvar_Get("r_marksOnTriangleMeshes", "0", CVAR_ARCHIVE);
+
+	r_aviMotionJpegQuality = ri.Cvar_Get("r_aviMotionJpegQuality", "90", CVAR_ARCHIVE);
+	r_screenshotJpegQuality = ri.Cvar_Get("r_screenshotJpegQuality", "90", CVAR_ARCHIVE);
 
 	r_maxpolys = ri.Cvar_Get( "r_maxpolys", va("%d", MAX_POLYS), 0);
 	r_maxpolyverts = ri.Cvar_Get( "r_maxpolyverts", va("%d", MAX_POLYVERTS), 0);

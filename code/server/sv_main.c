@@ -30,17 +30,17 @@ serverStatic_t	svs;				// persistant server info
 server_t		sv;					// local server
 vm_t			*gvm = NULL;				// game virtual machine
 
-cvar_t	*sv_fps;				// time rate for running non-clients
+cvar_t	*sv_fps = NULL;			// time rate for running non-clients
 cvar_t	*sv_timeout;			// seconds without any message
 cvar_t	*sv_zombietime;			// seconds to sink messages after disconnect
 cvar_t	*sv_rconPassword;		// password for remote server commands
-cvar_t	*sv_privatePassword;	// password for the privateClient slots
+cvar_t	*sv_privatePassword;		// password for the privateClient slots
 cvar_t	*sv_allowDownload;
 cvar_t	*sv_maxclients;
 
 cvar_t	*sv_privateClients;		// number of clients reserved for password
 cvar_t	*sv_hostname;
-cvar_t	*sv_master[MAX_MASTER_SERVERS];		// master server ip address
+cvar_t	*sv_master[MAX_MASTER_SERVERS];	// master server ip address
 cvar_t	*sv_reconnectlimit;		// minimum seconds between connect messages
 cvar_t	*sv_showloss;			// report when usercmds are lost
 cvar_t	*sv_padPackets;			// add nop bytes to messages
@@ -58,6 +58,9 @@ cvar_t	*sv_floodProtect;
 cvar_t	*sv_lanForceRate; // dedicated 1 (LAN) server forces local client rates to 99999 (bug #491)
 cvar_t	*sv_strictAuth;
 cvar_t	*sv_banFile;
+cvar_t  *sv_heartbeat;			// Heartbeat string that is sent to the master
+cvar_t  *sv_flatline;			// If the master server supports it we can send a flatline
+					// when server is killed
 
 cvar_t	*sv_block1337;			// whether to block clients with qport 1337,
 					// default 1 block
@@ -256,8 +259,8 @@ but not on every player enter or exit.
 ================
 */
 #define	HEARTBEAT_MSEC	300*1000
-#define	HEARTBEAT_GAME	"QuakeArena-1"
-void SV_MasterHeartbeat( void ) {
+void SV_MasterHeartbeat(const char *message)
+{
 	static netadr_t	adr[MAX_MASTER_SERVERS][2]; // [2] for v4 and v6 address for the same address string.
 	int			i;
 	int			res;
@@ -340,9 +343,9 @@ void SV_MasterHeartbeat( void ) {
 		// ever incompatably changes
 
 		if(adr[i][0].type != NA_BAD)
-			NET_OutOfBandPrint( NS_SERVER, adr[i][0], "heartbeat %s\n", HEARTBEAT_GAME );
+			NET_OutOfBandPrint( NS_SERVER, adr[i][0], "heartbeat %s\n", message);
 		if(adr[i][1].type != NA_BAD)
-			NET_OutOfBandPrint( NS_SERVER, adr[i][1], "heartbeat %s\n", HEARTBEAT_GAME );
+			NET_OutOfBandPrint( NS_SERVER, adr[i][1], "heartbeat %s\n", message);
 	}
 }
 
@@ -356,11 +359,11 @@ Informs all masters that this server is going down
 void SV_MasterShutdown( void ) {
 	// send a hearbeat right now
 	svs.nextHeartbeatTime = -9999;
-	SV_MasterHeartbeat();
+	SV_MasterHeartbeat(sv_flatline->string);
 
 	// send it again to minimize chance of drops
 	svs.nextHeartbeatTime = -9999;
-	SV_MasterHeartbeat();
+	SV_MasterHeartbeat(sv_flatline->string);
 
 	// when the master tries to poll the server, it won't respond, so
 	// it will be removed from the list
@@ -465,7 +468,8 @@ static leakyBucket_t *SVC_BucketForAddress( netadr_t address, int burst, int per
 		interval = now - bucket->lastTime;
 
 		// Reclaim expired buckets
-		if ( bucket->lastTime > 0 && interval > ( burst * period ) ) {
+		if ( bucket->lastTime > 0 && ( interval > ( burst * period ) ||
+					interval < 0 ) ) {
 			if ( bucket->prev != NULL ) {
 				bucket->prev->next = bucket->next;
 			} else {
@@ -626,7 +630,7 @@ if a user is interested in a server to do a full status
 ================
 */
 void SVC_Info( netadr_t from ) {
-	int		i, count;
+	int		i, count, humans;
 	char	*gamedir;
 	char	infostring[MAX_INFO_STRING];
 
@@ -645,10 +649,13 @@ void SVC_Info( netadr_t from ) {
 		return;
 
 	// don't count privateclients
-	count = 0;
+	count = humans = 0;
 	for ( i = sv_privateClients->integer ; i < sv_maxclients->integer ; i++ ) {
 		if ( svs.clients[i].state >= CS_CONNECTED ) {
 			count++;
+			if (svs.clients[i].netchan.remoteAddress.type != NA_BOT) {
+				humans++;
+			}
 		}
 	}
 
@@ -658,14 +665,16 @@ void SVC_Info( netadr_t from ) {
 	// to prevent timed spoofed reply packets that add ghost servers
 	Info_SetValueForKey( infostring, "challenge", Cmd_Argv(1) );
 
-	Info_SetValueForKey( infostring, "protocol", va("%i", PROTOCOL_VERSION) );
+	Info_SetValueForKey( infostring, "protocol", va("%i", com_protocol->integer) );
 	Info_SetValueForKey( infostring, "hostname", sv_hostname->string );
 	Info_SetValueForKey( infostring, "mapname", sv_mapname->string );
 	Info_SetValueForKey( infostring, "clients", va("%i", count) );
+	Info_SetValueForKey(infostring, "g_humanplayers", va("%i", humans));
 	Info_SetValueForKey( infostring, "sv_maxclients", 
 		va("%i", sv_maxclients->integer - sv_privateClients->integer ) );
 	Info_SetValueForKey( infostring, "gametype", va("%i", sv_gametype->integer ) );
 	Info_SetValueForKey( infostring, "pure", va("%i", sv_pure->integer ) );
+	Info_SetValueForKey(infostring, "g_needpass", va("%d", Cvar_VariableIntegerValue("g_needpass")));
 
 #ifdef USE_VOIP
 	if (sv_voip->integer) {
@@ -1084,6 +1093,29 @@ static qboolean SV_CheckPaused( void ) {
 
 /*
 ==================
+SV_FrameMsec
+Return time in millseconds until processing of the next server frame.
+==================
+*/
+int SV_FrameMsec()
+{
+	if(sv_fps)
+	{
+		int frameMsec;
+		
+		frameMsec = 1000.0f / sv_fps->value;
+		
+		if(frameMsec < sv.timeResidual)
+			return 0;
+		else
+			return frameMsec - sv.timeResidual;
+	}
+	else
+		return 1;
+}
+
+/*
+==================
 SV_Frame
 
 Player movement occurs as a result of packet events, which
@@ -1133,13 +1165,6 @@ void SV_Frame( int msec ) {
 	sv.timeResidual += msec;
 
 	if (!com_dedicated->integer) SV_BotFrame (sv.time + sv.timeResidual);
-
-	if ( com_dedicated->integer && sv.timeResidual < frameMsec ) {
-		// NET_Sleep will give the OS time slices until either get a packet
-		// or time enough for a server frame has gone by
-		NET_Sleep(frameMsec - sv.timeResidual);
-		return;
-	}
 
 	// if time is about to hit the 32nd bit, kick all clients
 	// and clear sv.time, rather
@@ -1205,7 +1230,7 @@ void SV_Frame( int msec ) {
 	SV_SendClientMessages();
 
 	// send a heartbeat to the master if needed
-	SV_MasterHeartbeat();
+	SV_MasterHeartbeat(sv_heartbeat->string);
 }
 
 //============================================================================

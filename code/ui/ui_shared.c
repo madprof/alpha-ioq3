@@ -1258,7 +1258,7 @@ commandDef_t commandList[] =
   {"orbit", &Script_Orbit}                      // group/name
 };
 
-int scriptCommandCount = sizeof(commandList) / sizeof(commandDef_t);
+int scriptCommandCount = ARRAY_LEN(commandList);
 
 
 void Item_RunScript(itemDef_t *item, const char *s) {
@@ -3113,7 +3113,6 @@ void Item_Multi_Paint(itemDef_t *item) {
 
 typedef struct {
 	char	*command;
-	int		id;
 	int		defaultbind1;
 	int		defaultbind2;
 	int		bind1;
@@ -3193,7 +3192,7 @@ static bind_t g_bindings[] =
 };
 
 
-static const int g_bindCount = sizeof(g_bindings) / sizeof(bind_t);
+static const int g_bindCount = ARRAY_LEN(g_bindings);
 
 #ifndef MISSIONPACK
 static configcvar_t g_configcvars[] =

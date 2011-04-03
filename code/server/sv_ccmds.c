@@ -357,9 +357,15 @@ static void SV_MapRestart_f( void ) {
 			continue;
 		}
 
-		client->state = CS_ACTIVE;
-
-		SV_ClientEnterWorld( client, &client->lastUsercmd );
+		if(client->state == CS_ACTIVE)
+			SV_ClientEnterWorld(client, &client->lastUsercmd);
+		else
+		{
+			// If we don't reset client->lastUsercmd and are restarting during map load,
+			// the client will hang because we'll use the last Usercmd from the previous map,
+			// which is wrong obviously.
+			SV_ClientEnterWorld(client, NULL);
+		}
 	}	
 
 	// run another frame to allow things to look at all the players
@@ -675,15 +681,12 @@ static void SV_WriteBans(void)
 {
 	int index;
 	fileHandle_t writeto;
-	char *curpos, filepath[MAX_QPATH];
+	char filepath[MAX_QPATH];
 	
 	if(!sv_banFile->string || !*sv_banFile->string)
 		return;
 	
-	if(!(curpos = Cvar_VariableString("fs_game")) || !*curpos)
-		curpos = BASEGAME;
-	
-	Com_sprintf(filepath, sizeof(filepath), "%s/%s", curpos, sv_banFile->string);
+	Com_sprintf(filepath, sizeof(filepath), "%s/%s", FS_GetCurrentGameDir(), sv_banFile->string);
 
 	if((writeto = FS_SV_FOpenFileWrite(filepath)))
 	{
@@ -715,7 +718,7 @@ static qboolean SV_DelBanEntryFromList(int index)
 {
 	if(index == serverBansCount - 1)
 		serverBansCount--;
-	else if(index < sizeof(serverBans) / sizeof(*serverBans) - 1)
+	else if(index < ARRAY_LEN(serverBans) - 1)
 	{
 		memmove(serverBans + index, serverBans + index + 1, (serverBansCount - index - 1) * sizeof(*serverBans));
 		serverBansCount--;
@@ -795,7 +798,7 @@ static void SV_AddBanToList(qboolean isexception)
 		return;
 	}
 
-	if(serverBansCount > sizeof(serverBans) / sizeof(*serverBans))
+	if(serverBansCount > ARRAY_LEN(serverBans))
 	{
 		Com_Printf ("Error: Maximum number of bans/exceptions exceeded.\n");
 		return;
@@ -1238,20 +1241,31 @@ static void SV_Status_f( void ) {
 		}
 
 		Com_Printf ("%s", cl->name);
-    // TTimo adding a ^7 to reset the color
-    // NOTE: colored names in status breaks the padding (WONTFIX)
-    Com_Printf ("^7");
-		l = 16 - strlen(cl->name);
-		for (j=0 ; j<l ; j++)
+		
+		// TTimo adding a ^7 to reset the color
+		// NOTE: colored names in status breaks the padding (WONTFIX)
+		Com_Printf ("^7");
+		l = 14 - strlen(cl->name);
+		j = 0;
+		
+		do
+		{
 			Com_Printf (" ");
+			j++;
+		} while(j < l);
 
 		Com_Printf ("%7i ", svs.time - cl->lastPacketTime );
 
 		s = NET_AdrToString( cl->netchan.remoteAddress );
 		Com_Printf ("%s", s);
 		l = 22 - strlen(s);
-		for (j=0 ; j<l ; j++)
-			Com_Printf (" ");
+		j = 0;
+		
+		do
+		{
+			Com_Printf(" ");
+			j++;
+		} while(j < l);
 		
 		Com_Printf ("%5i", cl->netchan.qport);
 
@@ -1368,7 +1382,7 @@ Examine or change the serverinfo string
 */
 static void SV_Systeminfo_f( void ) {
 	Com_Printf ("System info settings:\n");
-	Info_Print ( Cvar_InfoString( CVAR_SYSTEMINFO ) );
+	Info_Print ( Cvar_InfoString_Big( CVAR_SYSTEMINFO ) );
 }
 
 
@@ -1672,7 +1686,7 @@ static void SV_NameServerDemo(char *filename, int length, const client_t *client
 		// TODO: when the string gets too long (what exactly is
 		// the limit?) it get's cut off at the end ruining the
 		// file extension
-		Q_snprintf(
+		Com_sprintf(
 			filename, length-1, "serverdemos/%.4d-%.2d-%.2d_%.2d-%.2d-%.2d_%s_%d.dm_%d",
 			time.tm_year+1900, time.tm_mon, time.tm_mday,
 			time.tm_hour, time.tm_min, time.tm_sec,
@@ -1867,7 +1881,7 @@ SV_CompleteMapName
 */
 static void SV_CompleteMapName( char *args, int argNum ) {
 	if( argNum == 2 ) {
-		Field_CompleteFilename( "maps", "bsp", qtrue );
+		Field_CompleteFilename( "maps", "bsp", qtrue, qfalse );
 	}
 }
 
@@ -1887,7 +1901,7 @@ void SV_AddOperatorCommands( void ) {
 	Cmd_AddCommand ("heartbeat", SV_Heartbeat_f);
 	Cmd_AddCommand ("kick", SV_Kick_f);
 #ifndef STANDALONE
-	if(!Cvar_VariableIntegerValue("com_standalone"))
+	if(!com_standalone->integer)
 	{
 		Cmd_AddCommand ("banUser", SV_Ban_f);
 		Cmd_AddCommand ("banClient", SV_BanNum_f);

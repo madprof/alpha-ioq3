@@ -298,6 +298,8 @@ static void LAN_GetServerInfo( int source, int n, char *buf, int buflen ) {
 		Info_SetValueForKey( info, "nettype", va("%i",server->netType));
 		Info_SetValueForKey( info, "addr", NET_AdrToStringwPort(server->adr));
 		Info_SetValueForKey( info, "punkbuster", va("%i", server->punkbuster));
+		Info_SetValueForKey( info, "g_needpass", va("%i", server->g_needpass));
+		Info_SetValueForKey( info, "g_humanplayers", va("%i", server->g_humanplayers));
 		Q_strncpyz(buf, info, buflen);
 	} else {
 		if (buf) {
@@ -729,7 +731,7 @@ intptr_t CL_UISystemCalls( intptr_t *args ) {
 		return 0;
 
 	case UI_CVAR_SET:
-		Cvar_Set( VMA(1), VMA(2) );
+		Cvar_SetSafe( VMA(1), VMA(2) );
 		return 0;
 
 	case UI_CVAR_VARIABLEVALUE:
@@ -740,7 +742,7 @@ intptr_t CL_UISystemCalls( intptr_t *args ) {
 		return 0;
 
 	case UI_CVAR_SETVALUE:
-		Cvar_SetValue( VMA(1), VMF(2) );
+		Cvar_SetValueSafe( VMA(1), VMF(2) );
 		return 0;
 
 	case UI_CVAR_RESET:

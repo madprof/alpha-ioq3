@@ -318,7 +318,7 @@ static InitialVideoOptions_s s_ivo_templates[] =
 	}
 };
 
-#define NUM_IVO_TEMPLATES ( sizeof( s_ivo_templates ) / sizeof( s_ivo_templates[0] ) )
+#define NUM_IVO_TEMPLATES ( ARRAY_LEN( s_ivo_templates ) )
 
 static const char *builtinResolutions[ ] =
 {
@@ -496,7 +496,7 @@ static void GraphicsOptions_GetResolutions( void )
 	{
 		char* s = resbuf;
 		unsigned int i = 0;
-		while( s && i < sizeof(detectedResolutions)/sizeof(detectedResolutions[0])-1)
+		while( s && i < ARRAY_LEN(detectedResolutions)-1 )
 		{
 			detectedResolutions[i++] = s;
 			s = strchr(s, ' ');
@@ -662,7 +662,7 @@ static void GraphicsOptions_ApplyChanges( void *unused, int notification )
 		// search for builtin mode that matches the detected mode
 		int mode;
 		if ( s_graphicsoptions.mode.curvalue == -1
-			|| s_graphicsoptions.mode.curvalue >= sizeof(detectedResolutions)/sizeof(detectedResolutions[0]) )
+			|| s_graphicsoptions.mode.curvalue >= ARRAY_LEN( detectedResolutions ) )
 			s_graphicsoptions.mode.curvalue = 0;
 
 		mode = GraphicsOptions_FindBuiltinResolution( s_graphicsoptions.mode.curvalue );
@@ -683,9 +683,11 @@ static void GraphicsOptions_ApplyChanges( void *unused, int notification )
 		trap_Cvar_SetValue( "r_mode", s_graphicsoptions.mode.curvalue );
 
 	trap_Cvar_SetValue( "r_fullscreen", s_graphicsoptions.fs.curvalue );
-	trap_Cvar_SetValue( "r_colorbits", 0 );
-	trap_Cvar_SetValue( "r_depthbits", 0 );
-	trap_Cvar_SetValue( "r_stencilbits", 0 );
+
+	trap_Cvar_Reset("r_colorbits");
+	trap_Cvar_Reset("r_depthbits");
+	trap_Cvar_Reset("r_stencilbits");
+
 	trap_Cvar_SetValue( "r_vertexLight", s_graphicsoptions.lighting.curvalue );
 
 	if ( s_graphicsoptions.geometry.curvalue == 2 )
